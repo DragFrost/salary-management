@@ -3,16 +3,16 @@ import { analyticsService } from "@/lib/services/analytics-service";
 import { employeeService } from "@/lib/services/employee-service";
 import {
   cleanupTestEmployees,
-  TEST_CODE_PREFIX,
+  ANALYTICS_TEST_CODE_PREFIX,
 } from "../fixtures/test-helpers";
 
 describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
   beforeAll(async () => {
-    await cleanupTestEmployees();
+    await cleanupTestEmployees(ANALYTICS_TEST_CODE_PREFIX);
   });
 
   afterAll(async () => {
-    await cleanupTestEmployees();
+    await cleanupTestEmployees(ANALYTICS_TEST_CODE_PREFIX);
   });
 
   // Test 6: Payroll analytics aggregation, exact median calculation, and currency isolation
@@ -20,7 +20,7 @@ describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
     // 6a: Insert controlled USD fixtures with odd count for unambiguous median
     // Salaries: 100,000.00, 150,000.00, 200,000.00 -> Sum = 450,000.00, Avg = 150,000.00, Median = 150,000.00
     await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}ANALYTICS-USD-1`,
+      employeeCode: `${ANALYTICS_TEST_CODE_PREFIX}USD-1`,
       firstName: "User1",
       lastName: "USD",
       email: "usd1.analytics@acme-corp.synthetic",
@@ -32,7 +32,7 @@ describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
     });
 
     await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}ANALYTICS-USD-2`,
+      employeeCode: `${ANALYTICS_TEST_CODE_PREFIX}USD-2`,
       firstName: "User2",
       lastName: "USD",
       email: "usd2.analytics@acme-corp.synthetic",
@@ -44,7 +44,7 @@ describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
     });
 
     await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}ANALYTICS-USD-3`,
+      employeeCode: `${ANALYTICS_TEST_CODE_PREFIX}USD-3`,
       firstName: "User3",
       lastName: "USD",
       email: "usd3.analytics@acme-corp.synthetic",
@@ -58,7 +58,7 @@ describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
     // 6b: Insert controlled EUR fixtures with even count for continuous median
     // Salaries: 60,000.00, 80,000.00 -> Sum = 140,000.00, Avg = 70,000.00, Median = 70,000.00
     await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}ANALYTICS-EUR-1`,
+      employeeCode: `${ANALYTICS_TEST_CODE_PREFIX}EUR-1`,
       firstName: "User1",
       lastName: "EUR",
       email: "eur1.analytics@acme-corp.synthetic",
@@ -70,7 +70,7 @@ describe("Payroll Analytics Aggregation and Currency Isolation Tests", () => {
     });
 
     await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}ANALYTICS-EUR-2`,
+      employeeCode: `${ANALYTICS_TEST_CODE_PREFIX}EUR-2`,
       firstName: "User2",
       lastName: "EUR",
       email: "eur2.analytics@acme-corp.synthetic",

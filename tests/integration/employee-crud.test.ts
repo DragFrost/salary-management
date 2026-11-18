@@ -9,22 +9,22 @@ import {
 } from "@/lib/validations/employee";
 import {
   cleanupTestEmployees,
-  TEST_CODE_PREFIX,
+  CRUD_TEST_CODE_PREFIX,
 } from "../fixtures/test-helpers";
 
 describe("Employee CRUD and Filtering Integration Tests", () => {
   beforeAll(async () => {
-    await cleanupTestEmployees();
+    await cleanupTestEmployees(CRUD_TEST_CODE_PREFIX);
   });
 
   afterAll(async () => {
-    await cleanupTestEmployees();
+    await cleanupTestEmployees(CRUD_TEST_CODE_PREFIX);
   });
 
   // Test 1: Employee creation with valid data
   it("should create an employee with valid data and exact decimal salary", async () => {
     const input = {
-      employeeCode: `${TEST_CODE_PREFIX}CREATE-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}CREATE-01`,
       firstName: "Jane",
       lastName: "Doe",
       email: "jane.doe.test@acme-corp.synthetic",
@@ -53,7 +53,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
   it("should reject employee creation with invalid data schema", () => {
     // 2a: Reject negative salary
     const negativeSalaryResult = createEmployeeSchema.safeParse({
-      employeeCode: `${TEST_CODE_PREFIX}INV-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}INV-01`,
       firstName: "Bad",
       lastName: "Data",
       email: "bad.salary@acme-corp.synthetic",
@@ -67,7 +67,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
 
     // 2b: Reject invalid currency code not in ISO 4217 allowlist
     const invalidCurrencyResult = createEmployeeSchema.safeParse({
-      employeeCode: `${TEST_CODE_PREFIX}INV-02`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}INV-02`,
       firstName: "Bad",
       lastName: "Currency",
       email: "bad.currency@acme-corp.synthetic",
@@ -81,7 +81,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
 
     // 2c: Reject malformed email
     const invalidEmailResult = createEmployeeSchema.safeParse({
-      employeeCode: `${TEST_CODE_PREFIX}INV-03`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}INV-03`,
       firstName: "Bad",
       lastName: "Email",
       email: "not-an-email",
@@ -95,7 +95,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
 
     // 2d: Reject salary exceeding numeric(12, 2) maximum (more than 10 integer digits)
     const excessSalaryResult = createEmployeeSchema.safeParse({
-      employeeCode: `${TEST_CODE_PREFIX}INV-04`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}INV-04`,
       firstName: "Bad",
       lastName: "Overflow",
       email: "overflow@acme-corp.synthetic",
@@ -111,7 +111,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
   // Test 3: Duplicate employee code and email conflict handling
   it("should prevent duplicate employee codes and emails with EmployeeConflictError", async () => {
     const primaryInput = {
-      employeeCode: `${TEST_CODE_PREFIX}DUP-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}DUP-01`,
       firstName: "Alice",
       lastName: "Smith",
       email: "alice.smith.test@acme-corp.synthetic",
@@ -136,7 +136,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
     await expect(
       employeeService.createEmployee({
         ...primaryInput,
-        employeeCode: `${TEST_CODE_PREFIX}DUP-02`,
+        employeeCode: `${CRUD_TEST_CODE_PREFIX}DUP-02`,
       })
     ).rejects.toThrow(EmployeeConflictError);
   });
@@ -145,7 +145,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
   it("should filter, search, and paginate employees correctly at database level", async () => {
     // Insert distinct test batch
     const emp1 = await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}SEARCH-DE-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}SEARCH-DE-01`,
       firstName: "Hans",
       lastName: "Gruber",
       email: "hans.gruber.test@acme-corp.synthetic",
@@ -157,7 +157,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
     });
 
     const emp2 = await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}SEARCH-IN-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}SEARCH-IN-01`,
       firstName: "Aarav",
       lastName: "Patel",
       email: "aarav.patel.test@acme-corp.synthetic",
@@ -208,7 +208,7 @@ describe("Employee CRUD and Filtering Integration Tests", () => {
   // Test 5: Employee retrieval, update, and deletion
   it("should retrieve, update, and delete an employee by UUID", async () => {
     const created = await employeeService.createEmployee({
-      employeeCode: `${TEST_CODE_PREFIX}LIFECYCLE-01`,
+      employeeCode: `${CRUD_TEST_CODE_PREFIX}LIFECYCLE-01`,
       firstName: "Marcus",
       lastName: "Brody",
       email: "marcus.brody.test@acme-corp.synthetic",

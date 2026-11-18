@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { employees } from "../src/lib/db/schema.ts";
+import { employees } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 
 // Configuration

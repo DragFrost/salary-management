@@ -34,31 +34,31 @@ export interface PayrollAnalyticsResponse {
   byDepartment: DepartmentPayrollSummary[];
 }
 
-interface CurrencyRow {
+type CurrencyRow = {
   currency: string;
   employee_count: number;
   total_payroll: string;
   average_salary: string;
   median_salary: string;
-}
+};
 
-interface CountryRow {
+type CountryRow = {
   country: string;
   currency: string;
   employee_count: number;
   total_payroll: string;
   average_salary: string;
   median_salary: string;
-}
+};
 
-interface DepartmentRow {
+type DepartmentRow = {
   department: string;
   currency: string;
   employee_count: number;
   total_payroll: string;
   average_salary: string;
   median_salary: string;
-}
+};
 
 export const analyticsService = {
   /**
