@@ -108,6 +108,35 @@ Expected response when connected:
 
 ---
 
+## Running Integration Tests
+
+Integration tests run using Vitest against a dedicated test database to protect development data:
+
+### 1. Create Dedicated Test Database
+```bash
+createdb acme_salary_test
+```
+
+### 2. Configure Environment Variable
+In `.env`, define the mandatory `TEST_DATABASE_URL`:
+```env
+TEST_DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/acme_salary_test
+```
+
+### 3. Apply Schema Migrations to Test Database
+```bash
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/acme_salary_test npm run db:migrate
+```
+
+### 4. Execute Integration Tests
+```bash
+npm test
+```
+
+> **Isolation Rule:** `TEST_DATABASE_URL` is mandatory. The test runner will immediately abort if `TEST_DATABASE_URL` is missing or matches `DATABASE_URL` to prevent accidental modification of the 10,000-employee development seed.
+
+---
+
 ## Available Scripts
 
 | Command | Description |
@@ -117,6 +146,8 @@ Expected response when connected:
 | `npm run start` | Starts production server |
 | `npm run lint` | Runs ESLint checks |
 | `npm run typecheck` | Validates TypeScript types without emitting code |
+| `npm test` | Runs Vitest backend integration tests |
+| `npm run test:watch` | Runs Vitest in interactive watch mode |
 | `npm run db:generate` | Generates SQL migrations from Drizzle schema |
 | `npm run db:migrate` | Applies pending migrations to PostgreSQL |
 | `npm run db:seed` | Seeds 10,000 deterministic synthetic employees |

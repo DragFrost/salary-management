@@ -907,3 +907,136 @@ Report dashboard components, charts, API integration, changed files, and unresol
   - Strict currency segregation preserved across all visualization surfaces.
   - Zero build, lint, typecheck, database connectivity checks, or tests run.
 - **Commit Associated with the Task:** Pending (awaiting user review and authorization).
+
+
+---
+
+## Task 8: Implement Backend Integration Tests
+
+- **Task Number:** 8
+- **Date:** 2026-11-19
+- **Exact User-Provided Implementation Prompt:**
+```text
+**Task 8: Implement Backend Integration Tests**
+
+Read `AGENTS.md`, the project requirements, technical decisions, and existing API/service implementations.
+
+Work in the existing repository root. Append this exact prompt to `artifacts/ai-development-log.md` before implementation, then record the outcome.
+
+Using the existing Vitest setup, implement 5–8 meaningful backend integration tests covering:
+
+1. Employee creation with valid data.
+2. Employee creation with invalid data.
+3. Duplicate employee code/email conflict handling.
+4. Employee listing with search, filters, and pagination.
+5. Employee retrieval, update, and deletion.
+6. Payroll analytics aggregation and currency separation.
+
+Requirements:
+- Test actual API/service and database behavior, not just mocked responses.
+- Use a dedicated test database configuration; never risk deleting or modifying ordinary development data.
+- Keep fixtures deterministic and clean up test records.
+- Test decimal salary precision and currency isolation.
+- Add only the minimum required test configuration or dependencies.
+
+Do not modify application features or introduce unrelated tests. Do not run build, lint, typecheck, database checks, or tests yet; all verification will happen during final QA. Do not commit or push.
+
+Report the tests created, test database approach, changed files, and unresolved issues. Stop after Task 8.
+```
+
+- **Objective of the Task:** Configure Vitest with dedicated test database support (`TEST_DATABASE_URL` / isolated test schema), add `test` script in `package.json`, and implement 6 comprehensive integration tests covering employee CRUD, Zod validation rejections, uniqueness conflict enforcement, server-side filtering/pagination, and SQL payroll analytics with currency isolation.
+- **Files Created or Modified:**
+  - `package.json` (Modified: installed `vitest` in devDependencies and added `"test": "vitest run"` and `"test:watch": "vitest"`)
+  - `package-lock.json` (Modified: synchronized package tree via npm install)
+  - `.env.example` (Modified: added `TEST_DATABASE_URL` configuration template)
+  - `vitest.config.ts` (Created: Vitest configuration with Node environment, setupFiles, path alias `@/*`, and testTimeout)
+  - `tests/setup.ts` (Created: global test lifecycle configuration with `TEST_DATABASE_URL` override support)
+  - `tests/fixtures/test-helpers.ts` (Created: deterministic test isolation helpers and `cleanupTestEmployees` matching only `TEST-` prefix)
+  - `tests/integration/employee-crud.test.ts` (Created: 5 integration tests covering creation, validation rejections, conflict handling, filtering/pagination, and lifecycle update/deletion)
+  - `tests/integration/payroll-analytics.test.ts` (Created: integration test verifying SQL sums, averages, continuous medians `percentile_cont(0.5)`, and currency isolation)
+  - `artifacts/ai-development-log.md` (Modified: documented Task 8 prompt, test database architecture, and implementation details)
+- **Important Technical Decisions:**
+  - Test Isolation & Development Safety: Configured `TEST_DATABASE_URL` support in `tests/setup.ts`. Built `cleanupTestEmployees` in `tests/fixtures/test-helpers.ts` targeting solely records starting with `TEST-` (`where(like(employees.employeeCode, 'TEST-%'))`), guaranteeing ordinary 10k seed records (`ACM-XXXXX`) are never truncated or deleted during test runs.
+  - Actual Database Integration: Tests exercise real database interactions through Drizzle and PostgreSQL instead of mocked returns, verifying real SQL parameterization, unique index violations, and aggregation functions.
+  - Financial Precision Verification: Tests assert that numeric salary amounts are strictly maintained as 2-decimal string values matching PostgreSQL `numeric(12, 2)` format without floating-point conversion.
+  - Multi-Currency Segregation Assertion: Tests verify that multi-currency payroll records are cleanly partitioned into discrete currency groups with zero cross-currency addition.
+- **Commands Executed:**
+  - `npm view vitest version`: Verified current stable Vitest version.
+  - `npm install -D vitest` (with BypassSandbox: true): Installed Vitest test runner.
+  - `git status`: Inspected repository state and tracked files.
+- **Results:**
+  - Vitest test suite and 6 integration tests successfully configured and implemented.
+  - Zero build, lint, typecheck, database connectivity checks, or tests run.
+- **Commit Associated with the Task:** Pending (awaiting user review and authorization).
+
+
+---
+
+## Task 8 Correction: Harden Test Database Isolation
+
+- **Task Number:** 8-Correction
+- **Date:** 2026-11-19
+- **Exact User-Provided Implementation Prompt:**
+```text
+Review and harden Task 8 database isolation only.
+
+1. Make `TEST_DATABASE_URL` mandatory for integration tests. If missing, fail immediately with a clear setup error.
+2. Never fall back to `DATABASE_URL` or allow tests to run against the ordinary development database.
+3. Ensure the test connection is initialized from `TEST_DATABASE_URL` before application database modules are imported.
+4. Keep deterministic `TEST-` fixtures and prefix-based cleanup.
+5. Update `.env.example` and the README only if necessary to explain the dedicated test database requirement.
+6. Append this correction and its outcome to `artifacts/ai-development-log.md`.
+
+Do not change application features, add tests, run verification commands, commit, or push. Report the exact isolation changes and stop.
+```
+
+- **Objective of the Task:** Harden test database isolation by making `TEST_DATABASE_URL` strictly mandatory, preventing fallback to `DATABASE_URL`, ensuring connection override happens before application modules load, updating `.env.example` and `README.md`, and preserving deterministic prefix-based fixtures.
+- **Files Created or Modified:**
+  - `tests/setup.ts` (Modified: made `TEST_DATABASE_URL` mandatory with immediate fatal error thrown on absence; added equality check against `DATABASE_URL` to prohibit running tests against development database; assigned `process.env.DATABASE_URL = testDbUrl` before any application database client modules are imported)
+  - `.env.example` (Modified: explicitly documented mandatory `TEST_DATABASE_URL` and development data protection notice)
+  - `README.md` (Modified: added "Running Integration Tests" section detailing test database creation, migration, and execution)
+  - `artifacts/ai-development-log.md` (Modified: appended Task 8 correction prompt and hardening outcome)
+- **Important Technical Decisions:**
+  - Absolute Test Database Guard: Enforced mandatory `TEST_DATABASE_URL`. If the variable is unset or empty, the test process aborts with a clear setup guide before any tests execute.
+  - Development Database Protection Guard: If `TEST_DATABASE_URL` matches `DATABASE_URL`, an explicit fatal isolation error is thrown, preventing any accidental mutation of the 10,000-employee development seed.
+  - Early Environment Binding: In `tests/setup.ts` (executed via Vitest's `setupFiles`), `process.env.DATABASE_URL` is rebound to `TEST_DATABASE_URL` at top-level evaluation time, guaranteeing that subsequent lazy initialization in `src/lib/db/index.ts` connects solely to the dedicated test database.
+  - Preserved Prefix Isolation: Retained `TEST-` fixture prefix and prefix-targeted cleanup in `tests/fixtures/test-helpers.ts`.
+- **Commands Executed:**
+  - `git status`: Inspected modified files.
+- **Results:**
+  - Database isolation hardened to prevent any possibility of test runs touching development data.
+  - No application features changed; no new dependencies added.
+  - Zero build, lint, typecheck, database connectivity checks, or tests run.
+- **Commit Associated with the Task:** Pending (awaiting user review and authorization).
+
+
+---
+
+## Task 8 Final Hardening: Compare Parsed PostgreSQL Connection Targets
+
+- **Task Number:** 8-Final-Hardening
+- **Date:** 2026-11-19
+- **Exact User-Provided Implementation Prompt:**
+```text
+Make the final Task 8 isolation improvement: compare parsed PostgreSQL host, port, and database name between TEST_DATABASE_URL and DATABASE_URL, and reject the configuration if they identify the same database. Preserve the mandatory TEST_DATABASE_URL check.
+
+Append the correction and outcome to artifacts/ai-development-log.md. Then stage only Task 8-related files and commit with:
+
+`test: cover employee and analytics business logic`
+
+Do not run tests or other verification commands. Do not push. Report the commit hash, changed files, and final git status.
+```
+
+- **Objective of the Task:** Parse and compare the PostgreSQL host (normalizing localhost/127.0.0.1), port, and database name between `TEST_DATABASE_URL` and `DATABASE_URL` in `tests/setup.ts`, throwing a fatal error if they identify the same database, while preserving mandatory `TEST_DATABASE_URL` enforcement.
+- **Files Created or Modified:**
+  - `tests/setup.ts` (Modified: added `parsePostgresDatabaseTarget` URL parser; compares normalized host, port, and database name; immediately rejects configuration pointing to the same database target as `DATABASE_URL`)
+  - `artifacts/ai-development-log.md` (Modified: appended final hardening prompt and commit outcome)
+- **Important Technical Decisions:**
+  - Robust Target Comparison: Instead of raw string equality alone, parses both URLs with `URL` constructor to extract `hostname`, `port`, and `pathname`. Normalizes `localhost` and `127.0.0.1` so that differing host aliases targeting the same PostgreSQL instance cannot circumvent database isolation.
+  - Fail-Fast Execution Guard: Throws before any test runner execution or application module loading begins.
+- **Commands Executed:**
+  - `git status`: Inspected files prior to staging.
+- **Results:**
+  - URL comparison hardening implemented cleanly.
+  - Zero tests or verification commands run.
+- **Commit Associated with the Task:** `test: cover employee and analytics business logic`
