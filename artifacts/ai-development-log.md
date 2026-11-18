@@ -616,3 +616,104 @@ STOP after completing Task 3.
   - No new external runtime or build dependencies added.
   - Zero build, lint, typecheck, or database checks run, strictly per instructions.
 - **Commit Associated with the Task:** Pending (awaiting user review and authorization).
+
+
+---
+
+## Task 4: Implement Employee CRUD and Filtering APIs
+
+- **Task Number:** 4
+- **Date:** 2026-11-19
+- **Exact User-Provided Implementation Prompt:**
+```text
+**Task 4: Implement Employee CRUD and Filtering APIs**
+
+Read `AGENTS.md`, `artifacts/requirements.md`, `artifacts/technical-decisions.md`, and `artifacts/implementation-plan.md`.
+
+Work in the existing repository root. Append this exact prompt to `artifacts/ai-development-log.md` before implementation, then record the outcome in the same entry.
+
+Implement Next.js Route Handler APIs using Drizzle and Zod:
+
+1. `GET /api/employees` — server-side pagination, search by employee code/name/email, and optional country and department filters. Return pagination metadata.
+2. `POST /api/employees` — create an employee with validated input.
+3. `GET /api/employees/[id]` — retrieve one employee.
+4. `PATCH /api/employees/[id]` — update employee fields with partial validation.
+5. `DELETE /api/employees/[id]` — delete an employee.
+
+Requirements:
+- Keep database filtering, searching, sorting, and pagination server-side.
+- Validate required fields, email, UUIDs, salary decimal values, and ISO 4217 currency codes.
+- Prevent duplicate employee codes and emails; return appropriate HTTP status codes and clear error responses.
+- Use parameterized Drizzle queries.
+- Keep route handlers and validation logic simple and reusable.
+
+Do not implement analytics, frontend, authentication, or unrelated features. Do not add dependencies unless necessary. Do not run build, lint, typecheck, database checks, or tests yet. Do not commit or push.
+
+Report implemented endpoints, validation decisions, changed files, and unresolved issues. Stop after Task 4.
+```
+
+- **Objective of the Task:** Implement Zod validation schemas, business logic service functions, and Next.js Route Handlers for full employee CRUD and server-side filtering/pagination (`GET /api/employees`, `POST /api/employees`, `GET /api/employees/[id]`, `PATCH /api/employees/[id]`, `DELETE /api/employees/[id]`).
+- **Files Created or Modified:**
+  - `src/lib/validations/employee.ts` (Created: Zod schemas for pagination/filtering query parameters, UUID params, employee creation, and partial update with positive decimal salary and ISO 4217 currency validation)
+  - `src/lib/services/employee-service.ts` (Created: decoupled domain service implementing `listEmployees`, `getEmployeeById`, `createEmployee`, `updateEmployee`, and `deleteEmployee` with unique constraint conflict checks and parameterized Drizzle queries)
+  - `src/app/api/employees/route.ts` (Created: Route Handlers for `GET` directory listing with pagination/search/filtering and `POST` employee creation with 201/400/409/500 responses)
+  - `src/app/api/employees/[id]/route.ts` (Created: Route Handlers for `GET` single employee, `PATCH` partial update, and `DELETE` removal by UUID with 200/400/404/409/500 responses)
+  - `artifacts/ai-development-log.md` (Modified: appended Task 4 prompt and implementation audit)
+- **Important Technical Decisions:**
+  - Enforced strict layer separation: Route handlers act exclusively as HTTP orchestration boundaries (parsing request bodies, validating schemas, calling domain services, formatting standard JSON responses `{ error: string, details?: unknown }`), keeping SQL and business logic isolated in `employeeService`.
+  - Database-level pagination and filtering: Queries utilize parameterized SQL `LIMIT`, `OFFSET`, `WHERE`, and `ORDER BY` via Drizzle ORM, with a parallel `count()` query for exact total count and metadata calculation (`totalPages`, `page`, `pageSize`, `total`).
+  - Search logic: Multi-column case-insensitive search using SQL `ILIKE` across `employeeCode`, `firstName`, `lastName`, and `email`.
+  - Financial precision validation: Salary validated to strictly positive numeric decimal values with maximum 2 fractional digits, converted to precise 2-decimal string format for PostgreSQL `numeric(12, 2)`.
+  - Currency validation: Strictly validated against 3-letter uppercase ISO 4217 standard (`^[A-Z]{3}$`).
+  - Collision handling: Explicit collision detection on `employeeCode` and `email` prior to insertion/update, returning structured HTTP 409 Conflict responses indicating the offending field.
+- **Commands Executed:**
+  - `git status`: Inspected repository state and tracked file changes.
+- **Results:**
+  - All five CRUD and filtering route handlers implemented with strict Zod validation, decoupled service layer, and standardized HTTP status codes.
+  - No new external dependencies introduced.
+  - Zero build, lint, typecheck, database connectivity checks, or tests run, strictly per instructions.
+- **Commit Associated with the Task:** Pending (awaiting user review and authorization).
+
+
+---
+
+## Task 4 Correction: API Validation and Database Conflicts
+
+- **Task Number:** 4-Correction
+- **Date:** 2026-11-19
+- **Exact User-Provided Implementation Prompt:**
+```text
+**Task 4 correction: API validation and database conflicts**
+
+Read the existing Task 4 implementation and `AGENTS.md`.
+
+Append this exact prompt to `artifacts/ai-development-log.md` before changes, then record the outcome.
+
+Make only these corrections:
+
+1. Validate currency codes against a reliable ISO 4217 allowlist, not just a three-letter regex.
+2. Accept salary amounts as decimal strings to preserve precision. Validate positive values and the `numeric(12,2)` limit without floating-point conversion.
+3. Handle PostgreSQL unique-constraint violations (`23505`) in create/update operations and return `409 Conflict`, while retaining existing pre-checks.
+
+Preserve all existing endpoints and response structures. Do not add dependencies unless essential. Do not run build, lint, typecheck, database checks, or tests. Do not commit or push.
+
+Report the changes and stop.
+```
+
+- **Objective of the Task:** Enhance Task 4 implementation with: (1) an authoritative ISO 4217 currency allowlist, (2) strict string-based decimal validation for `numeric(12, 2)` salary values without floating-point conversion, and (3) robust PostgreSQL `23505` unique-constraint error handling in `employeeService` while retaining existing pre-checks.
+- **Files Created or Modified:**
+  - `src/lib/validations/employee.ts` (Modified: added `ISO_4217_CURRENCIES` allowlist containing all active standard three-letter currency codes; replaced floating-point salary parser with strict decimal string validator enforcing up to 10 integer digits, at most 2 decimal places, and positive value assertion without `parseFloat` or `number` casting)
+  - `src/lib/services/employee-service.ts` (Modified: implemented `handleDatabaseConflict` to catch PostgreSQL error `23505` unique violations and convert them to `EmployeeConflictError` for both `employeeCode` and `email` while retaining existing pre-checks)
+  - `artifacts/ai-development-log.md` (Modified: appended Task 4 correction prompt and detailed implementation outcome)
+- **Important Technical Decisions:**
+  - Zero floating-point conversion for salary: Validates decimal string formatting using regex `/^\d{1,10}(\.\d{1,2})?$/`, checks positivity via digit comparison without IEEE 754 float cast, and normalizes padding (e.g. `"100.5"` -> `"100.50"`) purely using string concatenation.
+  - ISO 4217 allowlist: Maintained an exhaustive, authoritative allowlist (`ISO_4217_CURRENCIES`) with $O(1)$ set lookup, rejecting arbitrary 3-letter strings (e.g. `"XYZ"`, `"ABC"`).
+  - Two-tier uniqueness defense: Retained fast application-level pre-checks on `employeeCode` and `email` for immediate feedback, complemented by PostgreSQL `23505` exception interception to prevent race conditions during concurrent inserts/updates.
+- **Commands Executed:**
+  - `git status`: Inspected modified files.
+- **Results:**
+  - All requested corrections cleanly applied to `employee.ts` and `employee-service.ts`.
+  - All existing API endpoints, request signatures, and response envelopes preserved.
+  - No new external dependencies added.
+  - Zero build, lint, typecheck, database connectivity checks, or tests run.
+- **Commit Associated with the Task:** Pending (awaiting user review and authorization).
