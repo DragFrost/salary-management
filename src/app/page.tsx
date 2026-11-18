@@ -1,92 +1,239 @@
-import { ShieldCheck, Database, Layers, CheckCircle2 } from "lucide-react";
+"use client";
 
-export default function HomePage() {
+import React, { useState, useEffect, useCallback } from "react";
+import { EmployeeTable } from "@/components/employees/employee-table";
+import { EmployeeFilters } from "@/components/employees/employee-filters";
+import { EmployeePagination } from "@/components/employees/employee-pagination";
+import { EmployeeFormDialog } from "@/components/employees/employee-form-dialog";
+import { EmployeeDetailsDialog } from "@/components/employees/employee-details-dialog";
+import { EmployeeDeleteDialog } from "@/components/employees/employee-delete-dialog";
+import { Button } from "@/components/ui/button";
+import type { Employee } from "@/lib/db/schema";
+import { UserPlus, Users } from "lucide-react";
+
+const FILTER_COUNTRIES = [
+  "United States",
+  "United Kingdom",
+  "Germany",
+  "India",
+  "Canada",
+  "Australia",
+  "Japan",
+];
+
+const FILTER_DEPARTMENTS = [
+  "Engineering",
+  "Product",
+  "Human Resources",
+  "Finance",
+  "Sales",
+  "Marketing",
+  "Operations",
+];
+
+export default function EmployeeManagementPage() {
+  // Query & Filter states
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [country, setCountry] = useState("");
+  const [department, setDepartment] = useState("");
+
+  // Loading & Error states
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Dialog states
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
+
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [employeeToView, setEmployeeToView] = useState<Employee | null>(null);
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+
+  // 300ms Search Debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 on new search term
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Fetch employees from existing REST API
+  const fetchEmployees = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+
+      if (debouncedSearch.trim()) {
+        params.set("search", debouncedSearch.trim());
+      }
+      if (country) {
+        params.set("country", country);
+      }
+      if (department) {
+        params.set("department", department);
+      }
+
+      const res = await fetch(`/api/employees?${params.toString()}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(
+          errorData.error ?? `Server returned error status ${res.status}`
+        );
+      }
+
+      const json = await res.json();
+      setEmployees(json.data ?? []);
+      setTotal(json.pagination?.total ?? 0);
+      setTotalPages(json.pagination?.totalPages ?? 1);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load employee directory";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, pageSize, debouncedSearch, country, department]);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  const handleCountryChange = (newCountry: string) => {
+    setCountry(newCountry);
+    setPage(1);
+  };
+
+  const handleDepartmentChange = (newDept: string) => {
+    setDepartment(newDept);
+    setPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setCountry("");
+    setDepartment("");
+    setPage(1);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Welcome header */}
-      <div className="border-b pb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          ACME Employee Salary Management
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Core application scaffolding and database connectivity configuration established (Milestone 2).
-        </p>
-      </div>
-
-      {/* System Status Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-md bg-blue-50 p-2 text-blue-600">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Framework</p>
-              <p className="text-sm font-semibold text-slate-900">Next.js App Router</p>
-            </div>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Employee Directory
+            </h1>
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+              <Users className="h-3 w-3" />
+              <span>{total.toLocaleString()}</span>
+            </span>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Strict TypeScript, Tailwind CSS, shadcn/ui foundation.
+          <p className="mt-1 text-xs text-slate-500">
+            Search, filter, and manage global workforce records across 10,000 employees.
           </p>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-md bg-emerald-50 p-2 text-emerald-600">
-              <Database className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Database Layer</p>
-              <p className="text-sm font-semibold text-slate-900">Drizzle ORM</p>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            node-postgres driver with PostgreSQL connection pool.
-          </p>
-        </div>
-
-        <div className="rounded-lg border bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-md bg-purple-50 p-2 text-purple-600">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">API Health</p>
-              <p className="text-sm font-semibold text-slate-900">GET /api/health</p>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Automated database ping and error boundary.
-          </p>
-        </div>
+        <Button
+          onClick={() => {
+            setEmployeeToEdit(null);
+            setIsFormOpen(true);
+          }}
+          className="gap-2 shadow-sm"
+        >
+          <UserPlus className="h-4 w-4" />
+          <span>Add Employee</span>
+        </Button>
       </div>
 
-      {/* Setup confirmation */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900 mb-4">Milestone 2 Foundations</h2>
-        <ul className="space-y-3 text-sm text-slate-600">
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>Next.js App Router with TypeScript (strict mode) and path aliases</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>Tailwind CSS, Lucide icons, and shadcn/ui design tokens configured</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>Drizzle ORM configuration and database connection pooling in <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">src/lib/db</code></span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>Health check endpoint available at <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">/api/health</code></span>
-          </li>
-          <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            <span>Ready for Milestone 3 (Employee schema definition and 10k deterministic seed)</span>
-          </li>
-        </ul>
-      </div>
+      {/* Filter and Search Bar */}
+      <EmployeeFilters
+        search={search}
+        onSearchChange={setSearch}
+        country={country}
+        onCountryChange={handleCountryChange}
+        department={department}
+        onDepartmentChange={handleDepartmentChange}
+        onReset={handleResetFilters}
+        countries={FILTER_COUNTRIES}
+        departments={FILTER_DEPARTMENTS}
+      />
+
+      {/* Main Employee Data Table */}
+      <EmployeeTable
+        employees={employees}
+        isLoading={isLoading}
+        error={error}
+        onRetry={fetchEmployees}
+        onView={(emp) => {
+          setEmployeeToView(emp);
+          setIsDetailsOpen(true);
+        }}
+        onEdit={(emp) => {
+          setEmployeeToEdit(emp);
+          setIsFormOpen(true);
+        }}
+        onDelete={(emp) => {
+          setEmployeeToDelete(emp);
+          setIsDeleteOpen(true);
+        }}
+      />
+
+      {/* Server-Side Pagination Controls */}
+      <EmployeePagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(newSize);
+          setPage(1);
+        }}
+        isLoading={isLoading}
+      />
+
+      {/* Create / Edit Modal Dialog */}
+      <EmployeeFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        employeeToEdit={employeeToEdit}
+        onSuccess={fetchEmployees}
+      />
+
+      {/* Employee Details Modal Dialog */}
+      <EmployeeDetailsDialog
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        employee={employeeToView}
+        onEditClick={() => {
+          setEmployeeToEdit(employeeToView);
+          setIsFormOpen(true);
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <EmployeeDeleteDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        employee={employeeToDelete}
+        onSuccess={fetchEmployees}
+      />
     </div>
   );
 }
