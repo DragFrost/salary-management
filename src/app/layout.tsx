@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "ACME Employee Salary Management System",
   description: "Global employee directory and multi-currency payroll insights.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -44,7 +47,7 @@ export default function RootLayout({
                 <span>Directory</span>
               </Link>
               <Link
-                href="/"
+                href="/analytics"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition-colors"
               >
                 <BarChart3 className="h-4 w-4" />
